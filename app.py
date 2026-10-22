@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import ssl
 import socket
@@ -22,24 +23,42 @@ DB_USER = 'u1pk7sqztt9u5qsg'
 DB_PASS = '6NDoEV0FKNPPKXsl0sc4'
 DB_NAME = 'bx81z20ma04pwez5khey'
 
-# Render-ன் DNS பிழையைத் தவிர்த்து நேரடி IP எடுக்கும் செயல்பாடு
+# IPv4 முகவரியை மட்டும் சரிபார்க்கும் செயல்பாடு
+def is_valid_ipv4(ip_str):
+    pattern = r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+    return bool(re.match(pattern, str(ip_str).strip()))
+
+# CNAME-ஐத் தவிர்த்து நேரடி IPv4 முகவரியைக் கண்டறியும் DoH செயல்பாடு
 def get_direct_ip(domain):
-    try:
-        url = f"https://1.1.1.1/dns-query?name={domain}&type=A"
-        req = urllib.request.Request(url, headers={'Accept': 'application/dns-json'})
-        ctx = ssl._create_unverified_context()
-        with urllib.request.urlopen(req, timeout=4, context=ctx) as response:
-            data = json.loads(response.read().decode())
-            if 'Answer' in data and len(data['Answer']) > 0:
-                return data['Answer'][0]['data']
-    except Exception:
-        pass
+    endpoints = [
+        (f"https://1.1.1.1/dns-query?name={domain}&type=A", {'Accept': 'application/dns-json'}),
+        (f"https://dns.google/resolve?name={domain}&type=A", {'User-Agent': 'Mozilla/5.0'}),
+        (f"https://9.9.9.9/dns-query?name={domain}&type=A", {'Accept': 'application/dns-json'})
+    ]
     
+    ctx = ssl._create_unverified_context()
+    
+    for url, headers in endpoints:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
+                data = json.loads(response.read().decode())
+                if 'Answer' in data:
+                    for ans in data['Answer']:
+                        ip_candidate = str(ans.get('data', '')).rstrip('.')
+                        if is_valid_ipv4(ip_candidate):
+                            print(f"[DNS SUCCESS] {domain} resolved to IP: {ip_candidate}")
+                            return ip_candidate
+        except Exception as e:
+            print(f"[DNS DoH Fail] {url}: {e}")
+            
     try:
-        return socket.gethostbyname(domain)
+        ip = socket.gethostbyname(domain)
+        if is_valid_ipv4(ip):
+            return ip
     except Exception:
         pass
-        
+
     return domain
 
 def get_db_connection():
