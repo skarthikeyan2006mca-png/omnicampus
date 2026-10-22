@@ -1,5 +1,6 @@
 import os
-import socket
+import json
+import urllib.request
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector
@@ -13,23 +14,34 @@ app.secret_key = 'omni_campus_secure_key'
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-# Clever Cloud Host IPv4 முகவரியைக் கண்டறியும் பகுதி
-def get_host_ip():
-    raw_host = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
+
+# Google HTTPS DNS வழியே நேரடி IP முகவரி எடுக்கும் பகுதி
+def get_direct_ip(domain):
     try:
-        # IPv4 IP முகவரியை மட்டும் நேரடியாக எடுக்கிறது
-        info = socket.getaddrinfo(raw_host, 3306, socket.AF_INET)
-        return info[0][4][0]
+        url = f"https://dns.google/resolve?name={domain}&type=A"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            if 'Answer' in data and len(data['Answer']) > 0:
+                return data['Answer'][0]['data']
     except Exception:
-        return raw_host
+        pass
+    return domain
+
+RAW_HOST = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
 
 db_config = {
-    'host': get_host_ip(),
+    'host': get_direct_ip(RAW_HOST),
     'user': 'u1pk7sqztt9u5qsg',
     'password': '6NDoEV0FKNPPKXsl0sc4',
     'database': 'bx81z20ma04pwez5khey',
     'port': 3306
 }
+
+def get_db_connection():
+    config = db_config.copy()
+    config['host'] = get_direct_ip(RAW_HOST)
+    return mysql.connector.connect(**config)
 def safe_render(template_name, **context):
     try:
         return render_template(template_name, **context)
