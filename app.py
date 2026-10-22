@@ -1,5 +1,6 @@
 import os
 import json
+import ssl
 import urllib.request
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -15,17 +16,20 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Google HTTPS DNS வழியே நேரடி IP முகவரி எடுக்கும் பகுதி
+# DNS தேவையின்றி Google-ன் நேரடி IP (8.8.8.8) வழியாக Database IP எடுக்கும் பகுதி
 def get_direct_ip(domain):
     try:
-        url = f"https://dns.google/resolve?name={domain}&type=A"
+        url = f"https://8.8.8.8/resolve?name={domain}&type=A"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
+        ctx = ssl._create_unverified_context()
+        with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
             data = json.loads(response.read().decode())
-            if 'Answer' in data and len(data['Answer']) > 0:
-                return data['Answer'][0]['data']
-    except Exception:
-        pass
+            if 'Answer' in data:
+                for ans in data['Answer']:
+                    if ans.get('type') == 1:  # IPv4 Address
+                        return ans.get('data')
+    except Exception as e:
+        print("IP Resolution Error:", e)
     return domain
 
 RAW_HOST = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
