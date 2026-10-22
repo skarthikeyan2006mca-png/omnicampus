@@ -14,10 +14,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db_config = {
-    'host': 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com',
-    'user': 'u1pk7sqztt9u5qsg',
-    'password': '6NDoEV0FKNPPKXsl0sc4',  # Clever Cloud-la copy panna password
-    'database': 'bx81z20ma04pwez5khey',
+    'host': 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'.strip(),
+    'user': 'u1pk7sqztt9u5qsg'.strip(),
+    'password': '6NDoEV0FKNPPKXsl0sc4'.strip(),
+    'database': 'bx81z20ma04pwez5khey'.strip(),
     'port': 3306
 }
 
