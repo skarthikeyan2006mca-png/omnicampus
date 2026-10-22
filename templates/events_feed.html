@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Events Feed - Omni Campus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #f8fafc; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        h1 { font-size: 1.8rem; color: #0f172a; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+
+        .nav-links { display: flex; gap: 10px; }
+        .btn-nav { padding: 9px 16px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-outline { background: #fff; color: #334155; border: 1px solid #cbd5e1; }
+        .btn-outline:hover { background: #fef08a; border-color: #eab308; }
+
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; text-align: center; font-weight: 600; }
+        .alert-success { background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .alert-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+
+        /* SECTION HEADINGS FOR DIVIDED VIEW */
+        .section-header { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 25px 0 18px 0; display: flex; align-items: center; gap: 10px; border-left: 5px solid #eab308; padding-left: 12px; }
+
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 22px; }
+
+        .event-card { background: #ffffff; border: 2px solid #fef08a; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s; }
+        .event-card:hover { transform: translateY(-4px); border-color: #eab308; box-shadow: 0 12px 25px rgba(234, 179, 8, 0.15); }
+
+        .event-card-img { width: 100%; height: 230px; object-fit: contain; background-color: #0f172a; border-bottom: 1px solid #fef08a; }
+
+        .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .card-tag { display: inline-block; background: #fef08a; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 10px; width: fit-content; text-transform: uppercase; }
+        .card-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+        
+        .card-meta { font-size: 0.88rem; color: #64748b; margin-bottom: 15px; display: flex; flex-direction: column; gap: 6px; }
+        .card-meta i { color: #ca8a04; width: 20px; }
+
+        .card-actions { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
+        .btn-view { flex: 1; text-align: center; background: #0f172a; color: #fff; padding: 11px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; text-decoration: none; transition: background 0.2s; display: inline-flex; justify-content: center; align-items: center; gap: 6px; }
+        .btn-view:hover { background: #eab308; color: #0f172a; }
+        
+        .btn-registrations { width: 100%; text-align: center; background: #fef08a; color: #854d0e; padding: 11px 15px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; text-decoration: none; border: 1px solid #fde047; transition: background 0.2s; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-registrations:hover { background: #eab308; color: #0f172a; }
+
+        .empty-box { grid-column: 1/-1; text-align: center; padding: 35px; background: #fff; border-radius: 14px; border: 1px dashed #cbd5e1; color: #64748b; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <h1><i class="fa-solid fa-calendar-days" style="color: #eab308;"></i> Campus Events Feed</h1>
+            <div class="nav-links">
+                <a href="/login_portal" class="btn-nav btn-outline"><i class="fa-solid fa-arrow-left"></i> Portal</a>
+                <a href="/logout" class="btn-nav btn-outline"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% if session.get('user_type') == 'student' or session.get('user_type') == 'admin' %}
+            
+            <!-- SECTION 1: DEPARTMENT EVENTS -->
+            <div class="section-header">
+                <i class="fa-solid fa-building-user" style="color: #ca8a04;"></i> Department Events
+            </div>
+            <div class="events-grid">
+                {% set dept_count = namespace(val=0) %}
+                {% for event in events %}
+                    {% if event.event_type == 'Department Event' %}
+                        {% set dept_count.val = dept_count.val + 1 %}
+                        <div class="event-card">
+                            {% if event.image_path %}
+                            <img src="{{ url_for('static', filename=event.image_path) }}" class="event-card-img" alt="{{ event.title }}">
+                            {% else %}
+                            <div class="event-card-img" style="display: flex; justify-content: center; align-items: center; color: #94a3b8; font-size: 2.5rem;">
+                                <i class="fa-solid fa-image"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="card-body">
+                                <div>
+                                    <span class="card-tag">{{ event.event_type }}</span>
+                                    <div class="card-title">{{ event.title }}</div>
+                                    <div class="card-meta">
+                                        <div><i class="fa-solid fa-sitemap"></i> {{ event.organizer_name }}</div>
+                                        <div><i class="fa-solid fa-clock"></i> {{ event.event_date }}</div>
+                                        <div><i class="fa-solid fa-location-dot"></i> {{ event.venue }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="card-actions">
+                                    <a href="/event/{{ event.id }}" class="btn-view" style="width: 100%;"><i class="fa-solid fa-eye"></i> View & Register</a>
+                                    {% if session.get('user_type') == 'admin' %}
+                                    <a href="/view_registrations/{{ event.id }}" class="btn-registrations" style="width: auto;" title="View Student Registrations"><i class="fa-solid fa-users"></i></a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                {% if dept_count.val == 0 %}
+                <div class="empty-box">No Department Events available at the moment.</div>
+                {% endif %}
+            </div>
+
+            <!-- SECTION 2: CLUB EVENTS -->
+            <div class="section-header" style="margin-top: 45px;">
+                <i class="fa-solid fa-users-rays" style="color: #ca8a04;"></i> Club Events
+            </div>
+            <div class="events-grid">
+                {% set club_count = namespace(val=0) %}
+                {% for event in events %}
+                    {% if event.event_type == 'Club Event' %}
+                        {% set club_count.val = club_count.val + 1 %}
+                        <div class="event-card">
+                            {% if event.image_path %}
+                            <img src="{{ url_for('static', filename=event.image_path) }}" class="event-card-img" alt="{{ event.title }}">
+                            {% else %}
+                            <div class="event-card-img" style="display: flex; justify-content: center; align-items: center; color: #94a3b8; font-size: 2.5rem;">
+                                <i class="fa-solid fa-image"></i>
+                            </div>
+                            {% endif %}
+
+                            <div class="card-body">
+                                <div>
+                                    <span class="card-tag">{{ event.event_type }}</span>
+                                    <div class="card-title">{{ event.title }}</div>
+                                    <div class="card-meta">
+                                        <div><i class="fa-solid fa-sitemap"></i> {{ event.organizer_name }}</div>
+                                        <div><i class="fa-solid fa-clock"></i> {{ event.event_date }}</div>
+                                        <div><i class="fa-solid fa-location-dot"></i> {{ event.venue }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="card-actions">
+                                    <a href="/event/{{ event.id }}" class="btn-view" style="width: 100%;"><i class="fa-solid fa-eye"></i> View & Register</a>
+                                    {% if session.get('user_type') == 'admin' %}
+                                    <a href="/view_registrations/{{ event.id }}" class="btn-registrations" style="width: auto;" title="View Student Registrations"><i class="fa-solid fa-users"></i></a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                {% if club_count.val == 0 %}
+                <div class="empty-box">No Club Events available at the moment.</div>
+                {% endif %}
+            </div>
+
+        {% else %}
+
+            <!-- FOR DEPARTMENT REP & CLUB COORDINATORS ONLY -->
+            <div class="events-grid">
+                {% for event in events %}
+                <div class="event-card">
+                    {% if event.image_path %}
+                    <img src="{{ url_for('static', filename=event.image_path) }}" class="event-card-img" alt="{{ event.title }}">
+                    {% else %}
+                    <div class="event-card-img" style="display: flex; justify-content: center; align-items: center; color: #94a3b8; font-size: 2.5rem;">
+                        <i class="fa-solid fa-image"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <div>
+                            <span class="card-tag">{{ event.event_type }}</span>
+                            <div class="card-title">{{ event.title }}</div>
+                            <div class="card-meta">
+                                <div><i class="fa-solid fa-sitemap"></i> {{ event.organizer_name }}</div>
+                                <div><i class="fa-solid fa-clock"></i> {{ event.event_date }}</div>
+                                <div><i class="fa-solid fa-location-dot"></i> {{ event.venue }}</div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <a href="/view_registrations/{{ event.id }}" class="btn-registrations"><i class="fa-solid fa-users"></i> View Registered Students</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-box">No upcoming events found for your portal.</div>
+                {% endfor %}
+            </div>
+
+        {% endif %}
+
+    </div>
+</body>
+</html>

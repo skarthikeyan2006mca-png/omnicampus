@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omni Campus - Role Selection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Sedgwick+Ave&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; min-height: 100vh; font-family: 'Poppins', sans-serif; background-color: #ffffff; color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+        .container { width: 100%; max-width: 950px; text-align: center; }
+        .header-title { display: flex; align-items: baseline; justify-content: center; margin-bottom: 6px; }
+        .omni-text { font-size: 3.8rem; font-weight: 800; color: #eab308; letter-spacing: -1px; }
+        .campus-text { font-family: 'Sedgwick Ave', cursive; font-size: 4.2rem; color: #0f172a; margin-left: 10px; transform: rotate(-3deg); display: inline-block; }
+        .subtitle { font-size: 1rem; color: #64748b; margin-bottom: 45px; font-weight: 500; }
+        .portal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }
+        .portal-card { background: #fefce8; border: 2px solid #fef08a; border-radius: 20px; padding: 35px 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 10px 25px rgba(234, 179, 8, 0.08); transition: all 0.3s ease; }
+        .portal-card:hover { transform: translateY(-5px); border-color: #eab308; box-shadow: 0 15px 30px rgba(234, 179, 8, 0.22); }
+        .category-tag { font-size: 0.75rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #ca8a04; margin-bottom: 8px; }
+        .portal-title { font-size: 1.8rem; font-weight: 800; color: #0f172a; margin-bottom: 25px; }
+        .btn-group { display: flex; gap: 12px; width: 100%; justify-content: center; }
+        .btn { padding: 12px 24px; font-size: 0.95rem; font-weight: 700; border-radius: 12px; text-decoration: none; transition: all 0.2s ease; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+        .btn-outline { background-color: #ffffff; color: #0f172a; border: 2px solid #fde047; }
+        .btn-outline:hover { border-color: #eab308; background-color: #fef08a; }
+        .back-home { margin-top: 35px; display: inline-flex; align-items: center; gap: 8px; color: #64748b; text-decoration: none; font-weight: 600; font-size: 0.95rem; }
+        .back-home:hover { color: #ca8a04; }
+        @media (max-width: 768px) { .portal-grid { grid-template-columns: 1fr; } .omni-text { font-size: 3rem; } .campus-text { font-size: 3.4rem; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-title">
+            <span class="omni-text">Omni</span>
+            <span class="campus-text">Campus</span>
+        </div>
+        <p class="subtitle">Select your role to access your personalized campus workspace</p>
+
+        <div class="portal-grid">
+
+            <!-- 1. Student Portal -->
+            <div class="portal-card">
+                <span class="category-tag">Access & Participate</span>
+                <h2 class="portal-title">Student Portal</h2>
+                <div class="btn-group">
+                    <a href="/student_login" class="btn btn-outline">Student Login <i class="fa-solid fa-right-to-bracket"></i></a>
+                </div>
+            </div>
+
+            <!-- 2. Admin Portal -->
+            <div class="portal-card">
+                <span class="category-tag">System Control</span>
+                <h2 class="portal-title">Admin Portal</h2>
+                <div class="btn-group">
+                    <a href="/admin_login" class="btn btn-outline">Admin Login <i class="fa-solid fa-lock"></i></a>
+                </div>
+            </div>
+
+            <!-- 3. Dept Representative -->
+            <div class="portal-card">
+                <span class="category-tag">Academic Events</span>
+                <h2 class="portal-title">Dept Representative</h2>
+                <div class="btn-group">
+                    <a href="/coordinator_login" class="btn btn-outline">Dept Login & Post <i class="fa-solid fa-right-to-bracket"></i></a>
+                </div>
+            </div>
+
+            <!-- 4. Club Coordinator (Opens 10 Clubs Selection Page) -->
+            <div class="portal-card">
+                <span class="category-tag">Clubs & Activities</span>
+                <h2 class="portal-title">Club Coordinator</h2>
+                <div class="btn-group">
+                    <a href="/clubs" class="btn btn-outline">Club Login & Post <i class="fa-solid fa-bullhorn"></i></a>
+                </div>
+            </div>
+
+        </div>
+
+        <a href="/" class="back-home">
+            <i class="fa-solid fa-house"></i> Back to Home Page
+        </a>
+    </div>
+
+</body>
+</html>

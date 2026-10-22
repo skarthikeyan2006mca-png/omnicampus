@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Students Details - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #f8fafc; min-height: 100vh; padding: 40px 20px; display: flex; justify-content: center; align-items: flex-start; }
+        .container { background: #ffffff; border: 2px solid #fef08a; border-radius: 20px; padding: 35px; width: 100%; max-width: 1200px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; }
+        h2 { color: #0f172a; font-size: 1.6rem; font-weight: 700; }
+        .back-btn { color: #334155; text-decoration: none; font-weight: 600; font-size: 0.9rem; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; background: #f1f5f9; transition: all 0.2s; }
+        .back-btn:hover { background: #eab308; color: #0f172a; border-color: #eab308; }
+        
+        .table-responsive { overflow-x: auto; max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
+        th, td { padding: 12px 15px; text-align: left; font-size: 0.85rem; }
+        th { background-color: #0f172a; color: white; font-weight: 600; white-space: nowrap; }
+        tr:nth-child(even) { background-color: #fefce8; }
+        tr { border-bottom: 1px solid #e2e8f0; }
+        tr:hover { background-color: #fef08a; }
+        
+        .badge { padding: 4px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; }
+        .badge-male { background: #dbeafe; color: #1e40af; }
+        .badge-female { background: #fce7f3; color: #9d174d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2><i class="fa-solid fa-users"></i> Registered Students Directory</h2>
+            <a href="/admin_dashboard" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reg No</th>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>Course</th>
+                        <th>DOB</th>
+                        <th>Student Mobile</th>
+                        <th>Father Name</th>
+                        <th>Mother Name</th>
+                        <th>Parent Mobile</th>
+                        <th>Aadhaar No</th>
+                        <th>Email</th>
+                        <th>Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td style="font-weight: 700; color: #0f172a;">{{ student.register_no }}</td>
+                        <td style="font-weight: 600;">{{ student.name }}</td>
+                        <td>
+                            {% if student.gender == 'Female' %}
+                                <span class="badge badge-female">Female</span>
+                            {% else %}
+                                <span class="badge badge-male">Male</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ student.course }}</td>
+                        <td>{{ student.dob }}</td>
+                        <td>{{ student.student_mobile }}</td>
+                        <td>{{ student.father_name }}</td>
+                        <td>{{ student.mother_name }}</td>
+                        <td>{{ student.parent_mobile }}</td>
+                        <td>{{ student.aadhaar_no }}</td>
+                        <td>{{ student.email }}</td>
+                        <td style="max-width: 200px; font-size: 0.8rem;">{{ student.address }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="12" style="text-align: center; color: #64748b; padding: 25px;">No student records found. Add students from Dashboard.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

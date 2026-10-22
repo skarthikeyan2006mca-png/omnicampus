@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event.title }} - Omni Campus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #f8fafc; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 850px; margin: 0 auto; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        h1 { font-size: 1.8rem; color: #0f172a; font-weight: 700; }
+        .btn-back { background: #fff; color: #334155; border: 1px solid #cbd5e1; text-decoration: none; font-weight: 600; padding: 9px 18px; border-radius: 10px; font-size: 0.9rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-back:hover { background: #fef08a; border-color: #eab308; }
+
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; text-align: center; font-weight: 600; }
+        .alert-success { background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .alert-danger { background-color: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+
+        /* FULL IMAGE DISPLAY FIX - NO CROPPING */
+        .image-container { width: 100%; max-height: 600px; background-color: #0f172a; border-radius: 18px; border: 2px solid #fef08a; display: flex; justify-content: center; align-items: center; overflow: hidden; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        .image-container img { max-width: 100%; max-height: 600px; width: auto; height: auto; object-fit: contain; }
+
+        .info-box { background: #fffef0; border: 2px solid #fef08a; border-radius: 18px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .info-title { font-size: 1.15rem; font-weight: 700; color: #854d0e; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; border-bottom: 1.5px solid #fde047; padding-bottom: 10px; }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; font-size: 0.95rem; color: #334155; margin-bottom: 15px; }
+        .info-item { display: flex; flex-direction: column; }
+        .info-label { font-weight: 700; color: #0f172a; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-value { color: #334155; font-size: 1rem; margin-top: 2px; }
+
+        .description-box { margin-top: 15px; border-top: 1.5px solid #fde047; padding-top: 15px; }
+        .description-box .info-label { margin-bottom: 6px; }
+        .description-box p { color: #475569; line-height: 1.6; white-space: pre-line; }
+
+        .register-card { background: #ffffff; border: 2px solid #e2e8f0; border-radius: 18px; padding: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
+        .register-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full { grid-column: 1 / -1; }
+        label { font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 6px; }
+        input { padding: 11px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; }
+        input:focus { border-color: #eab308; outline: none; }
+
+        .btn-register { grid-column: 1 / -1; padding: 13px; background: #0f172a; color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
+        .btn-register:hover { background: #eab308; color: #0f172a; }
+
+        @media (max-width: 640px) { .info-grid, .form-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <h1>{{ event.title }}</h1>
+            <a href="/events" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Feed</a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- FULL EVENT BANNER IMAGE (NO CROP) -->
+        {% if event.image_path %}
+        <div class="image-container">
+            <img src="{{ url_for('static', filename=event.image_path) }}" alt="{{ event.title }}">
+        </div>
+        {% endif %}
+
+        <!-- DYNAMIC EVENT INFO & CONTACT BOX -->
+        <div class="info-box">
+            {% if event.event_type == 'Club Event' %}
+            <div class="info-title">
+                <i class="fa-solid fa-users-gear"></i> Event Information & Club Coordinator Contact
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Club / Organizer</span>
+                    <span class="info-value">{{ event.organizer_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Event Date</span>
+                    <span class="info-value">{{ event.event_date }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Venue</span>
+                    <span class="info-value">{{ event.venue }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Coordinator 1 Name</span>
+                    <span class="info-value">{{ event.contact_person or 'N/A' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Coordinator 1 Mobile</span>
+                    <span class="info-value">{{ event.contact_phone or 'N/A' }}</span>
+                </div>
+                {% if event.contact_person_2 %}
+                <div class="info-item">
+                    <span class="info-label">Coordinator 2 Name</span>
+                    <span class="info-value">{{ event.contact_person_2 }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Coordinator 2 Mobile</span>
+                    <span class="info-value">{{ event.contact_phone_2 or 'N/A' }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="info-title">
+                <i class="fa-solid fa-building-user"></i> Event Information & Representative Contact
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Department</span>
+                    <span class="info-value">{{ event.organizer_name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Event Date</span>
+                    <span class="info-value">{{ event.event_date }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Venue</span>
+                    <span class="info-value">{{ event.venue }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Representative Name</span>
+                    <span class="info-value">{{ event.contact_person or 'N/A' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Contact Number</span>
+                    <span class="info-value">{{ event.contact_phone or 'N/A' }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="description-box">
+                <span class="info-label">Description & Rules</span>
+                <p>{{ event.description }}</p>
+            </div>
+        </div>
+
+        <!-- STUDENT EVENT REGISTRATION FORM -->
+        {% if session.get('user_type') == 'student' %}
+        <div class="register-card">
+            <div class="register-title">
+                <i class="fa-solid fa-pen-to-square" style="color: #eab308;"></i> Register for this Event
+            </div>
+            <form action="/register_event/{{ event.id }}" method="POST">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Register Number *</label>
+                        <input type="text" name="register_no" value="{{ session.get('student_reg_no', '') }}" required readonly style="background: #f1f5f9;">
+                    </div>
+                    <div class="form-group">
+                        <label>Student Name *</label>
+                        <input type="text" name="name" value="{{ session.get('student_name', '') }}" required placeholder="Your Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number *</label>
+                        <input type="text" name="phone" required placeholder="10-digit Mobile Number">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address *</label>
+                        <input type="email" name="email" value="{{ session.get('student_email', '') }}" required placeholder="student@gmail.com">
+                    </div>
+                    <button type="submit" class="btn-register"><i class="fa-solid fa-check-circle"></i> Confirm Registration</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+</html>

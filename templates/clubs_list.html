@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Campus Club - Omni Campus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #f8fafc; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 1050px; margin: 0 auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        h1 { color: #0f172a; font-size: 1.8rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        .header-actions { display: flex; gap: 10px; }
+        .btn-action { text-decoration: none; font-weight: 600; padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-back { background: #fff; color: #334155; border: 1px solid #cbd5e1; }
+        .btn-back:hover { background: #fef08a; border-color: #eab308; }
+
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; text-align: center; font-weight: 600; }
+        .alert-info { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+        .clubs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px; }
+        
+        .club-card { background: #ffffff; border: 2px solid #fef08a; border-radius: 16px; padding: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s; }
+        .club-card:hover { transform: translateY(-4px); border-color: #eab308; box-shadow: 0 12px 25px rgba(234, 179, 8, 0.15); }
+        
+        .club-name { font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+        .club-name i { color: #eab308; }
+
+        .card-buttons { display: flex; width: 100%; }
+        .btn-select { width: 100%; padding: 11px; background: #0f172a; color: #fff; text-align: center; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; transition: background 0.2s; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-select:hover { background: #eab308; color: #0f172a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fa-solid fa-users-rays" style="color: #eab308;"></i> Select Campus Club</h1>
+            <div class="header-actions">
+                <a href="/login_portal" class="btn-action btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Portal</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="clubs-grid">
+            {% for club in clubs %}
+            <div class="club-card">
+                <div class="club-name">
+                    <i class="fa-solid fa-shield-halved"></i> {{ club.club_name }}
+                </div>
+                <div class="card-buttons">
+                    <a href="/club_select/{{ club.id }}" class="btn-select"><i class="fa-solid fa-right-to-bracket"></i> Login & Post</a>
+                </div>
+            </div>
+            {% else %}
+            <div style="grid-column: 1/-1; text-align: center; padding: 40px; background: #fff; border-radius: 12px;">
+                <p style="color: #64748b;">No clubs found in database.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

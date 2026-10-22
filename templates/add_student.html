@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Student - Omni Campus</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .form-card { background: #fefce8; border: 2px solid #fef08a; border-radius: 16px; padding: 35px; width: 100%; max-width: 500px; }
+        h2 { text-align: center; color: #0f172a; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; color: #334155; }
+        input, select { width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
+        input:focus, select:focus { border-color: #eab308; outline: none; }
+        .btn { width: 100%; padding: 12px; background: #0f172a; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; }
+        .btn:hover { background: #eab308; color: #0f172a; }
+    </style>
+</head>
+<body>
+    <div class="form-card">
+        <h2>Add Student Details</h2>
+        <form action="/add_student" method="POST">
+            <div class="form-group">
+                <label>Student Name</label>
+                <input type="text" name="name" placeholder="Full Name" required>
+            </div>
+            <div class="form-group">
+                <label>Roll Number</label>
+                <input type="text" name="roll_no" placeholder="Roll No" required>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <select name="department" required>
+                    <option value="">Select Department</option>
+                    <option value="CSE">CSE</option>
+                    <option value="ECE">ECE</option>
+                    <option value="EEE">EEE</option>
+                    <option value="MECH">MECH</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="student@campus.com" required>
+            </div>
+            <button type="submit" class="btn">Add Student</button>
+        </form>
+    </div>
+</body>
+</html>
