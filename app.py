@@ -1,6 +1,7 @@
 import os
 import json
 import ssl
+import socket
 import urllib.request
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -16,36 +17,42 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# DNS தேவையின்றி Google-ன் நேரடி IP (8.8.8.8) வழியாக Database IP எடுக்கும் பகுதி
+RAW_HOST = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
+DB_USER = 'u1pk7sqztt9u5qsg'
+DB_PASS = '6NDoEV0FKNPPKXsl0sc4'
+DB_NAME = 'bx81z20ma04pwez5khey'
+
+# Render-ன் DNS பிழையைத் தவிர்த்து நேரடி IP எடுக்கும் செயல்பாடு
 def get_direct_ip(domain):
     try:
-        url = f"https://8.8.8.8/resolve?name={domain}&type=A"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        url = f"https://1.1.1.1/dns-query?name={domain}&type=A"
+        req = urllib.request.Request(url, headers={'Accept': 'application/dns-json'})
         ctx = ssl._create_unverified_context()
-        with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
+        with urllib.request.urlopen(req, timeout=4, context=ctx) as response:
             data = json.loads(response.read().decode())
-            if 'Answer' in data:
-                for ans in data['Answer']:
-                    if ans.get('type') == 1:  # IPv4 Address
-                        return ans.get('data')
-    except Exception as e:
-        print("IP Resolution Error:", e)
+            if 'Answer' in data and len(data['Answer']) > 0:
+                return data['Answer'][0]['data']
+    except Exception:
+        pass
+    
+    try:
+        return socket.gethostbyname(domain)
+    except Exception:
+        pass
+        
     return domain
 
-RAW_HOST = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
-
-db_config = {
-    'host': get_direct_ip(RAW_HOST),
-    'user': 'u1pk7sqztt9u5qsg',
-    'password': '6NDoEV0FKNPPKXsl0sc4',
-    'database': 'bx81z20ma04pwez5khey',
-    'port': 3306
-}
-
 def get_db_connection():
-    config = db_config.copy()
-    config['host'] = get_direct_ip(RAW_HOST)
-    return mysql.connector.connect(**config)
+    target_host = get_direct_ip(RAW_HOST)
+    return mysql.connector.connect(
+        host=target_host,
+        user=DB_USER,
+        password=DB_PASS,
+        database=DB_NAME,
+        port=3306,
+        connect_timeout=10
+    )
+
 def safe_render(template_name, **context):
     try:
         return render_template(template_name, **context)
@@ -62,20 +69,10 @@ def safe_render(template_name, **context):
         </div>
         """, 404
 
-# ----------------- AUTO DATABASE & TABLE CREATION -----------------
+# ----------------- AUTO TABLE CREATION -----------------
 def init_db():
     try:
-        conn = mysql.connector.connect(
-            host=db_config['host'],
-            user=db_config['user'],
-            password=db_config['password']
-        )
-        cursor = conn.cursor(buffered=True)
-        cursor.execute("CREATE DATABASE IF NOT EXISTS campus_event_new_db")
-        cursor.close()
-        conn.close()
-
-        conn = mysql.connector.connect(**db_config)
+        conn = get_db_connection()
         cursor = conn.cursor(buffered=True)
 
         # 1. Students Table
@@ -204,9 +201,6 @@ def init_db():
         print(f"Database setup error: {e}")
 
 init_db()
-
-def get_db_connection():
-    return mysql.connector.connect(**db_config)
 
 # ----------------- HOME & PORTAL -----------------
 @app.route('/')
@@ -541,20 +535,16 @@ def events_feed():
 
     # STRICT FILTERING ACCORDING TO ROLE
     if user_type == 'dept_rep':
-        # DEPARTMENT REPRESENTATIVE SEES ONLY DEPARTMENT EVENTS
         cursor.execute("SELECT * FROM events WHERE event_type = 'Department Event' ORDER BY event_date DESC")
     elif user_type == 'club_coord':
-        # CLUB COORDINATOR SEES ONLY CLUB EVENTS
         selected_club = session.get('selected_club_name', '')
         if selected_club:
             cursor.execute("SELECT * FROM events WHERE event_type = 'Club Event' AND organizer_name = %s ORDER BY event_date DESC", (selected_club,))
         else:
             cursor.execute("SELECT * FROM events WHERE event_type = 'Club Event' ORDER BY event_date DESC")
     elif user_type == 'student':
-        # STUDENTS SEE ALL UPCOMING ACTIVE EVENTS
         cursor.execute("SELECT * FROM events WHERE event_date >= %s ORDER BY event_date ASC", (today_str,))
     else:
-        # ADMIN SEES ALL EVENTS
         cursor.execute("SELECT * FROM events ORDER BY event_date DESC")
         
     events = cursor.fetchall()
