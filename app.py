@@ -13,16 +13,18 @@ app.secret_key = 'omni_campus_secure_key'
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# Clever Cloud Host IP-ஐத் தானாகக் கண்டறியும் பகுதி
-raw_host = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
-try:
-    resolved_host = socket.gethostbyname(raw_host)
-except Exception:
-    resolved_host = raw_host
+# Clever Cloud Host IPv4 முகவரியைக் கண்டறியும் பகுதி
+def get_host_ip():
+    raw_host = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
+    try:
+        # IPv4 IP முகவரியை மட்டும் நேரடியாக எடுக்கிறது
+        info = socket.getaddrinfo(raw_host, 3306, socket.AF_INET)
+        return info[0][4][0]
+    except Exception:
+        return raw_host
 
 db_config = {
-    'host': resolved_host,
+    'host': get_host_ip(),
     'user': 'u1pk7sqztt9u5qsg',
     'password': '6NDoEV0FKNPPKXsl0sc4',
     'database': 'bx81z20ma04pwez5khey',
