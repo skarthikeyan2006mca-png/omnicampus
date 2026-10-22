@@ -1,4 +1,5 @@
 import os
+import socket
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector
@@ -13,16 +14,20 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Clever Cloud Host IP-ஐத் தானாகக் கண்டறியும் பகுதி
+raw_host = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
+try:
+    resolved_host = socket.gethostbyname(raw_host)
+except Exception:
+    resolved_host = raw_host
+
 db_config = {
-    'host': 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'.strip(),
-    'user': 'u1pk7sqztt9u5qsg'.strip(),
-    'password': '6NDoEV0FKNPPKXsl0sc4'.strip(),
-    'database': 'bx81z20ma04pwez5khey'.strip(),
+    'host': resolved_host,
+    'user': 'u1pk7sqztt9u5qsg',
+    'password': '6NDoEV0FKNPPKXsl0sc4',
+    'database': 'bx81z20ma04pwez5khey',
     'port': 3306
 }
-
-
-# ----------------- SAFE RENDER HELPER -----------------
 def safe_render(template_name, **context):
     try:
         return render_template(template_name, **context)
