@@ -17,10 +17,11 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-RAW_HOST = 'bx81z20ma04pwez5khey-mysql.services.clever-cloud.com'
-DB_USER = 'u1pk7sqztt9u5qsg'
-DB_PASS = '6NDoEV0FKNPPKXsl0sc4'
-DB_NAME = 'bx81z20ma04pwez5khey'
+# ----------------- NEW CLEVER CLOUD CREDENTIALS -----------------
+RAW_HOST = 'b21bgvzxaqpx9u329yo3-mysql.services.clever-cloud.com'
+DB_USER = 'ugp4g68kswi1xh6p'
+DB_PASS = 'UcO6jQcmH0CrVhrjI8pM'  # 👈 இங்கே உங்கள் புதிய Password-ஐ போடவும்
+DB_NAME = 'b21bgvzxaqpx9u329yo3'
 
 # IPv4 முகவரியை மட்டும் சரிபார்க்கும் செயல்பாடு
 def is_ipv4(ip_str):
@@ -34,7 +35,7 @@ def is_ipv4(ip_str):
             return False
     return True
 
-# Cloudflare HTTPS DoH Resolver (Headers & CNAME handling)
+# Cloudflare HTTPS DoH Resolver
 def resolve_doh(domain, depth=0):
     if depth > 3:
         return None
@@ -57,14 +58,12 @@ def resolve_doh(domain, depth=0):
             with urllib.request.urlopen(req, timeout=5, context=ctx) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
                 if 'Answer' in data:
-                    # 1. Look for IPv4 A Record (type == 1)
                     for ans in data['Answer']:
                         if ans.get('type') == 1:
                             ip = str(ans.get('data', '')).strip().rstrip('.')
                             if is_ipv4(ip):
                                 print(f"[DNS DoH SUCCESS] {domain} -> {ip}")
                                 return ip
-                    # 2. Look for CNAME Target (type == 5)
                     for ans in data['Answer']:
                         if ans.get('type') == 5:
                             cname_target = str(ans.get('data', '')).strip().rstrip('.')
@@ -73,7 +72,6 @@ def resolve_doh(domain, depth=0):
             print(f"[DNS DoH Exception] {url}: {e}")
             
     if cname_target:
-        print(f"[DNS CNAME Found] {domain} -> {cname_target}, resolving target...")
         return resolve_doh(cname_target, depth + 1)
         
     return None
@@ -85,23 +83,19 @@ def get_direct_ip(domain):
     if RESOLVED_IP and is_ipv4(RESOLVED_IP):
         return RESOLVED_IP
 
-    # Step A: Cloudflare HTTPS DoH Query
     ip = resolve_doh(domain)
     if ip:
         RESOLVED_IP = ip
         return ip
 
-    # Step B: Fallback to System Socket
     try:
         sys_ip = socket.gethostbyname(domain)
         if is_ipv4(sys_ip):
             RESOLVED_IP = sys_ip
-            print(f"[DNS System Socket] {domain} -> {sys_ip}")
             return sys_ip
     except Exception as e:
         print(f"[DNS System Socket Fail] {domain}: {e}")
 
-    print(f"[DNS WARNING] Returning raw host: {domain}")
     return domain
 
 def get_db_connection():
@@ -117,8 +111,7 @@ def get_db_connection():
             connect_timeout=15
         )
     except Exception as e:
-        print(f"[DB Connect Error with host {target_host}]: {e}")
-        RESOLVED_IP = None  # Reset cache on connection error
+        RESOLVED_IP = None
         raise e
 
 def safe_render(template_name, **context):
@@ -143,7 +136,6 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor(buffered=True)
 
-        # 1. Students Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -179,7 +171,6 @@ def init_db():
             except Exception:
                 pass
 
-        # 2. Coordinators Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS coordinators (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -196,7 +187,6 @@ def init_db():
             cursor.execute("INSERT INTO coordinators (username, password, role, name) VALUES ('club_admin', 'club123', 'club_coord', 'Club Coordinator')")
             conn.commit()
 
-        # 3. Clubs Table with 10 Default Clubs
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clubs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -214,7 +204,6 @@ def init_db():
                 cursor.execute("INSERT INTO clubs (club_name) VALUES (%s)", (c,))
             conn.commit()
 
-        # 4. Events Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -243,7 +232,6 @@ def init_db():
             except Exception:
                 pass
 
-        # 5. Event Registrations Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS event_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -594,14 +582,12 @@ def events_feed():
     today_str = date.today().strftime('%Y-%m-%d')
     user_type = session.get('user_type')
 
-    # AUTOMATIC DELETE EXPIRED EVENTS FROM DATABASE
     try:
         cursor.execute("DELETE FROM events WHERE event_date < %s", (today_str,))
         conn.commit()
     except Exception as e:
         print(f"Error auto-deleting expired events: {e}")
 
-    # STRICT FILTERING ACCORDING TO ROLE
     if user_type == 'dept_rep':
         cursor.execute("SELECT * FROM events WHERE event_type = 'Department Event' ORDER BY event_date DESC")
     elif user_type == 'club_coord':
