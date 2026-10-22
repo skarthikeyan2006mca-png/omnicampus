@@ -1,9 +1,7 @@
 import os
-import re
 import json
 import ssl
 import socket
-import struct
 import urllib.request
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash, session
@@ -25,11 +23,10 @@ DB_PASS = '6NDoEV0FKNPPKXsl0sc4'
 DB_NAME = 'bx81z20ma04pwez5khey'
 
 # IPv4 முகவரியை மட்டும் சரிபார்க்கும் செயல்பாடு
-def is_ipv4(val):
-    if not val or not isinstance(val, str):
+def is_ipv4(ip_str):
+    if not ip_str or not isinstance(ip_str, str):
         return False
-    val = val.strip().rstrip('.')
-    parts = val.split('.')
+    parts = ip_str.strip().rstrip('.').split('.')
     if len(parts) != 4:
         return False
     for p in parts:
@@ -37,85 +34,48 @@ def is_ipv4(val):
             return False
     return True
 
-# 1. UDP DNS Resolver (Direct Socket Query to Google & Cloudflare DNS)
-def resolve_udp_dns(domain, dns_ip='8.8.8.8'):
-    try:
-        packet = bytearray()
-        packet += struct.pack('!H', 0x1A2B)
-        packet += struct.pack('!H', 0x0100)
-        packet += struct.pack('!H', 1)
-        packet += struct.pack('!H', 0)
-        packet += struct.pack('!H', 0)
-        packet += struct.pack('!H', 0)
-
-        for part in domain.split('.'):
-            packet.append(len(part))
-            packet.extend(part.encode('ascii'))
-        packet.append(0)
-
-        packet += struct.pack('!H', 1)
-        packet += struct.pack('!H', 1)
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(3.0)
-        sock.sendto(packet, (dns_ip, 53))
-        data, _ = sock.recvfrom(1024)
-        sock.close()
-
-        if len(data) < 12:
-            return None
-
-        idx = 12
-        while idx < len(data) and data[idx] != 0:
-            idx += 1 + data[idx]
-        idx += 1 + 4
-
-        while idx < len(data):
-            if (data[idx] & 0xC0) == 0xC0:
-                idx += 2
-            else:
-                while idx < len(data) and data[idx] != 0:
-                    idx += 1 + data[idx]
-                idx += 1
-
-            if idx + 10 > len(data):
-                break
-
-            rtype, rclass, ttl, rdlen = struct.unpack('!HHIH', data[idx:idx+10])
-            idx += 10
-
-            if rtype == 1 and rdlen == 4 and idx + 4 <= len(data):
-                ip = '.'.join(str(b) for b in data[idx:idx+4])
-                if is_ipv4(ip):
-                    return ip
-            idx += rdlen
-    except Exception as e:
-        print(f"UDP DNS error for {dns_ip}: {e}")
-    return None
-
-# 2. DoH HTTPS Resolver
-def resolve_doh(domain):
-    endpoints = [
-        (f"https://8.8.8.8/resolve?name={domain}&type=A", {'User-Agent': 'Mozilla/5.0'}),
-        (f"https://1.1.1.1/dns-query?name={domain}&type=A", {'Accept': 'application/dns-json'}),
-        (f"https://9.9.9.9/dns-query?name={domain}&type=A", {'Accept': 'application/dns-json'})
-    ]
+# Cloudflare HTTPS DoH Resolver (Headers & CNAME handling)
+def resolve_doh(domain, depth=0):
+    if depth > 3:
+        return None
     
+    domain = domain.strip().rstrip('.')
+    urls = [
+        f"https://1.1.1.1/dns-query?name={domain}&type=A",
+        f"https://1.0.0.1/dns-query?name={domain}&type=A"
+    ]
+    headers = {
+        'Accept': 'application/dns-json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
     ctx = ssl._create_unverified_context()
     
-    for url, headers in endpoints:
+    cname_target = None
+    for url in urls:
         try:
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=4, context=ctx) as response:
-                data = json.loads(response.read().decode())
+            with urllib.request.urlopen(req, timeout=5, context=ctx) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
                 if 'Answer' in data:
+                    # 1. Look for IPv4 A Record (type == 1)
                     for ans in data['Answer']:
-                        if ans.get('type') == 1: # IPv4 A Record Only
+                        if ans.get('type') == 1:
                             ip = str(ans.get('data', '')).strip().rstrip('.')
                             if is_ipv4(ip):
+                                print(f"[DNS DoH SUCCESS] {domain} -> {ip}")
                                 return ip
+                    # 2. Look for CNAME Target (type == 5)
+                    for ans in data['Answer']:
+                        if ans.get('type') == 5:
+                            cname_target = str(ans.get('data', '')).strip().rstrip('.')
+                            break
         except Exception as e:
-            print(f"DoH ({url}) error: {e}")
+            print(f"[DNS DoH Exception] {url}: {e}")
+            
+    if cname_target:
+        print(f"[DNS CNAME Found] {domain} -> {cname_target}, resolving target...")
+        return resolve_doh(cname_target, depth + 1)
+        
     return None
 
 RESOLVED_IP = None
@@ -125,48 +85,41 @@ def get_direct_ip(domain):
     if RESOLVED_IP and is_ipv4(RESOLVED_IP):
         return RESOLVED_IP
 
-    # Step A: UDP DNS 8.8.8.8
-    ip = resolve_udp_dns(domain, '8.8.8.8')
-    if ip:
-        RESOLVED_IP = ip
-        print(f"[DNS SUCCESS UDP 8.8.8.8] {domain} -> {ip}")
-        return ip
-
-    # Step B: UDP DNS 1.1.1.1
-    ip = resolve_udp_dns(domain, '1.1.1.1')
-    if ip:
-        RESOLVED_IP = ip
-        print(f"[DNS SUCCESS UDP 1.1.1.1] {domain} -> {ip}")
-        return ip
-
-    # Step C: DoH HTTPS
+    # Step A: Cloudflare HTTPS DoH Query
     ip = resolve_doh(domain)
     if ip:
         RESOLVED_IP = ip
-        print(f"[DNS SUCCESS DoH] {domain} -> {ip}")
         return ip
 
-    # Step D: Socket Fallback
+    # Step B: Fallback to System Socket
     try:
         sys_ip = socket.gethostbyname(domain)
         if is_ipv4(sys_ip):
             RESOLVED_IP = sys_ip
+            print(f"[DNS System Socket] {domain} -> {sys_ip}")
             return sys_ip
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[DNS System Socket Fail] {domain}: {e}")
 
+    print(f"[DNS WARNING] Returning raw host: {domain}")
     return domain
 
 def get_db_connection():
+    global RESOLVED_IP
     target_host = get_direct_ip(RAW_HOST)
-    return mysql.connector.connect(
-        host=target_host,
-        user=DB_USER,
-        password=DB_PASS,
-        database=DB_NAME,
-        port=3306,
-        connect_timeout=15
-    )
+    try:
+        return mysql.connector.connect(
+            host=target_host,
+            user=DB_USER,
+            password=DB_PASS,
+            database=DB_NAME,
+            port=3306,
+            connect_timeout=15
+        )
+    except Exception as e:
+        print(f"[DB Connect Error with host {target_host}]: {e}")
+        RESOLVED_IP = None  # Reset cache on connection error
+        raise e
 
 def safe_render(template_name, **context):
     try:
