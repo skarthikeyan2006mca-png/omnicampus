@@ -1,8 +1,4 @@
 import os
-import json
-import ssl
-import socket
-import urllib.request
 from datetime import date
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 import mysql.connector
@@ -17,103 +13,34 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ----------------- NEW CLEVER CLOUD CREDENTIALS -----------------
+# ==============================================================================
+# 🔑 LOGIN CREDENTIALS CONFIGURATION (உங்கள் புதிய விவரங்களை இங்கே மாற்றவும்)
+# ==============================================================================
+ADMIN_USERNAME  = 'universityadmin'            # 👈 Admin Username
+ADMIN_PASSWORD  = 'klu'         # 👈 Admin Password
+
+DEPT_REP_USER   = 'departmentrepresentative'       # 👈 Department Rep Username
+DEPT_REP_PASS   = 'kludeptrep'          # 👈 Department Rep Password
+
+CLUB_COORD_USER = 'clubcoordinator'       # 👈 Club Coordinator Username
+CLUB_COORD_PASS = 'kluclubcoord'          # 👈 Club Coordinator Password
+# ==============================================================================
+
+# Clever Cloud Database Credentials
 RAW_HOST = 'b21bgvzxaqpx9u329yo3-mysql.services.clever-cloud.com'
-DB_USER = 'ugp4g68kswi1xh6p'
-DB_PASS = 'UcO6jQcmH0CrVhrjI8pM'  # 👈 இங்கே உங்கள் புதிய Password-ஐ போடவும்
-DB_NAME = 'b21bgvzxaqpx9u329yo3'
+DB_USER  = 'ugp4g68kswi1xh6p'
+DB_PASS  = 'Uc06jQcmH0CrVhrjI8pM'
+DB_NAME  = 'b21bgvzxaqpx9u329yo3'
 
-# IPv4 முகவரியை மட்டும் சரிபார்க்கும் செயல்பாடு
-def is_ipv4(ip_str):
-    if not ip_str or not isinstance(ip_str, str):
-        return False
-    parts = ip_str.strip().rstrip('.').split('.')
-    if len(parts) != 4:
-        return False
-    for p in parts:
-        if not p.isdigit() or not (0 <= int(p) <= 255):
-            return False
-    return True
+db_config = {
+    'host': RAW_HOST,
+    'user': DB_USER,
+    'password': DB_PASS,
+    'database': DB_NAME,
+    'port': 3306
+}
 
-# Cloudflare HTTPS DoH Resolver
-def resolve_doh(domain, depth=0):
-    if depth > 3:
-        return None
-    
-    domain = domain.strip().rstrip('.')
-    urls = [
-        f"https://1.1.1.1/dns-query?name={domain}&type=A",
-        f"https://1.0.0.1/dns-query?name={domain}&type=A"
-    ]
-    headers = {
-        'Accept': 'application/dns-json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-    ctx = ssl._create_unverified_context()
-    
-    cname_target = None
-    for url in urls:
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=5, context=ctx) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                if 'Answer' in data:
-                    for ans in data['Answer']:
-                        if ans.get('type') == 1:
-                            ip = str(ans.get('data', '')).strip().rstrip('.')
-                            if is_ipv4(ip):
-                                print(f"[DNS DoH SUCCESS] {domain} -> {ip}")
-                                return ip
-                    for ans in data['Answer']:
-                        if ans.get('type') == 5:
-                            cname_target = str(ans.get('data', '')).strip().rstrip('.')
-                            break
-        except Exception as e:
-            print(f"[DNS DoH Exception] {url}: {e}")
-            
-    if cname_target:
-        return resolve_doh(cname_target, depth + 1)
-        
-    return None
-
-RESOLVED_IP = None
-
-def get_direct_ip(domain):
-    global RESOLVED_IP
-    if RESOLVED_IP and is_ipv4(RESOLVED_IP):
-        return RESOLVED_IP
-
-    ip = resolve_doh(domain)
-    if ip:
-        RESOLVED_IP = ip
-        return ip
-
-    try:
-        sys_ip = socket.gethostbyname(domain)
-        if is_ipv4(sys_ip):
-            RESOLVED_IP = sys_ip
-            return sys_ip
-    except Exception as e:
-        print(f"[DNS System Socket Fail] {domain}: {e}")
-
-    return domain
-
-def get_db_connection():
-    global RESOLVED_IP
-    target_host = get_direct_ip(RAW_HOST)
-    try:
-        return mysql.connector.connect(
-            host=target_host,
-            user=DB_USER,
-            password=DB_PASS,
-            database=DB_NAME,
-            port=3306,
-            connect_timeout=15
-        )
-    except Exception as e:
-        RESOLVED_IP = None
-        raise e
-
+# ----------------- SAFE RENDER HELPER -----------------
 def safe_render(template_name, **context):
     try:
         return render_template(template_name, **context)
@@ -130,12 +57,13 @@ def safe_render(template_name, **context):
         </div>
         """, 404
 
-# ----------------- AUTO TABLE CREATION -----------------
+# ----------------- AUTO DATABASE & TABLE CREATION -----------------
 def init_db():
     try:
-        conn = get_db_connection()
+        conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor(buffered=True)
 
+        # 1. Students Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS students (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -171,6 +99,7 @@ def init_db():
             except Exception:
                 pass
 
+        # 2. Coordinators Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS coordinators (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -183,10 +112,21 @@ def init_db():
 
         cursor.execute("SELECT COUNT(*) FROM coordinators")
         if cursor.fetchone()[0] == 0:
-            cursor.execute("INSERT INTO coordinators (username, password, role, name) VALUES ('dept_admin', 'dept123', 'dept_rep', 'Department Representative')")
-            cursor.execute("INSERT INTO coordinators (username, password, role, name) VALUES ('club_admin', 'club123', 'club_coord', 'Club Coordinator')")
-            conn.commit()
+            cursor.execute(
+                "INSERT INTO coordinators (username, password, role, name) VALUES (%s, %s, 'dept_rep', 'Department Representative')",
+                (DEPT_REP_USER, DEPT_REP_PASS)
+            )
+            cursor.execute(
+                "INSERT INTO coordinators (username, password, role, name) VALUES (%s, %s, 'club_coord', 'Club Coordinator')",
+                (CLUB_COORD_USER, CLUB_COORD_PASS)
+            )
+        else:
+            cursor.execute("UPDATE coordinators SET username = %s, password = %s WHERE role = 'dept_rep'", (DEPT_REP_USER, DEPT_REP_PASS))
+            cursor.execute("UPDATE coordinators SET username = %s, password = %s WHERE role = 'club_coord'", (CLUB_COORD_USER, CLUB_COORD_PASS))
 
+        conn.commit()
+
+        # 3. Clubs Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS clubs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -204,6 +144,7 @@ def init_db():
                 cursor.execute("INSERT INTO clubs (club_name) VALUES (%s)", (c,))
             conn.commit()
 
+        # 4. Events Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -232,6 +173,7 @@ def init_db():
             except Exception:
                 pass
 
+        # 5. Event Registrations Table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS event_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -257,6 +199,9 @@ def init_db():
         print(f"Database setup error: {e}")
 
 init_db()
+
+def get_db_connection():
+    return mysql.connector.connect(**db_config)
 
 # ----------------- HOME & PORTAL -----------------
 @app.route('/')
@@ -391,7 +336,7 @@ def delete_club(club_id):
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        if request.form['username'] == 'admin' and request.form['password'] == 'admin123':
+        if request.form['username'] == ADMIN_USERNAME and request.form['password'] == ADMIN_PASSWORD:
             session['user_type'] = 'admin'
             return redirect(url_for('admin_dashboard'))
         flash('Invalid Admin Credentials!', 'danger')
@@ -582,12 +527,14 @@ def events_feed():
     today_str = date.today().strftime('%Y-%m-%d')
     user_type = session.get('user_type')
 
+    # AUTOMATIC DELETE EXPIRED EVENTS FROM DATABASE
     try:
         cursor.execute("DELETE FROM events WHERE event_date < %s", (today_str,))
         conn.commit()
     except Exception as e:
         print(f"Error auto-deleting expired events: {e}")
 
+    # STRICT FILTERING ACCORDING TO ROLE
     if user_type == 'dept_rep':
         cursor.execute("SELECT * FROM events WHERE event_type = 'Department Event' ORDER BY event_date DESC")
     elif user_type == 'club_coord':
