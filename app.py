@@ -27,10 +27,10 @@ CLUB_COORD_PASS = 'kluclubcoord'          # 👈 Club Coordinator Password
 # ==============================================================================
 
 # Clever Cloud Database Credentials
-RAW_HOST = 'b21bgvzxaqpx9u329yo3-mysql.services.clever-cloud.com'
-DB_USER  = 'ugp4g68kswi1xh6p'
-DB_PASS  = 'Uc06jQcmH0CrVhrjI8pM'
-DB_NAME  = 'b21bgvzxaqpx9u329yo3'
+RAW_HOST = 'b4e9mnn98557iottdkfo-mysql.services.clever-cloud.com'
+DB_USER  = 'unnuuppujnpgr8pq'
+DB_PASS  = 'Ify5oVDrv4gIqno3T6NS'
+DB_NAME  = 'b4e9mnn98557iottdkfo'
 
 db_config = {
     'host': RAW_HOST,
